@@ -1,0 +1,324 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<meta content="text/css" http-equiv="Content-Style-Type">
+<title>Lua语言实现细节</title>
+</head>
+<body>
+<h1 align="center" class="root">
+<a name="6u38tjf7o4r3ujpktfptula3kn">Lua语言实现细节</a>
+</h1>
+<div align="center" class="globalOverview">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/images/Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82.jpg"></div>
+<h2 class="topic">
+<a name="6jki79uf19mtobik8knl44t903">Lua编译文件</a>
+</h2>
+<h3 class="topic">
+<a name="7ans4ib5i3dckmc4f7vqveei8m">&nbsp;Chunk文件</a>
+</h3>
+<h3 class="topic">
+<a name="2li6ir0jh6inujbbvppsf4t3q7">&nbsp;&nbsp;Lua 虚拟机加载chunk文件</a>
+</h3>
+<h3 class="topic">
+<a name="0pdsj4bffc7henibllsghbtc7j">&nbsp;&nbsp;按照本机的大小端加载</a>
+</h3>
+<h3 class="topic">
+<a name="1ldu0ruii5rakqi5mp95pkip2f">&nbsp;&nbsp;按版本加载</a>
+</h3>
+<h3 class="topic">
+<a name="0a8nkq604dsrhm8af8aheusmll">&nbsp;&nbsp;二进制chunk 编译后可能比源码更占空间</a>
+</h3>
+<h3 class="topic">
+<a name="7m200gmmkg7jprbt4r2v3fd3ji">&nbsp;&nbsp;头部函数和主函数</a>
+</h3>
+<h3 class="topic">
+<a name="210pt2io85een9fhc8lled591a">&nbsp;Chunk文件格式</a>
+</h3>
+<h3 class="topic">
+<a name="1s1d5l3u0ijgpbnflf8k6u0gh0">&nbsp;&nbsp;魔数</a>
+</h3>
+<h3 class="topic">
+<a name="57mvvuotjpkkc8g5ql06udl5p2">&nbsp;&nbsp;&nbsp;主要用作识别文件格式</a>
+</h3>
+<h3 class="topic">
+<a name="2jam7bat9g79qm5hqcu8odr3kg">&nbsp;&nbsp;版本号</a>
+</h3>
+<h3 class="topic">
+<a name="08ovt0fqcdnsu2s8agfl833avm">&nbsp;&nbsp;&nbsp;记录Lua编译文件的版本号 大版本号(Mavor Version) 和小版本号(Minor Version) 
+发布号(Release Version)。 example:3.5.4 Mahor Version:3 Minor Version:5 发布号 4</a>
+</h3>
+<h3 class="topic">
+<a name="58f43b8sqa2ne1c8ojnm6lstf5">&nbsp;&nbsp;&nbsp;版本号计算：major Version * 16  +Minor Version </a>
+</h3>
+<h3 class="topic">
+<a name="4joe5ittvmc1koivnoq2f2m1gf">&nbsp;&nbsp;格式号</a>
+</h3>
+<h3 class="topic">
+<a name="2daoir6qtnk9hob75f49pofku9">&nbsp;&nbsp;&nbsp;版本号之后是一个字节记录二进制chunk格式号。</a>
+</h3>
+<h3 class="topic">
+<a name="2ukqk6fsimb92hg8no01horbi0">&nbsp;&nbsp;&nbsp;&nbsp;和虚拟机格式号匹配</a>
+</h3>
+<h3 class="topic">
+<a name="3pdk2fma89c51i7ebqiujhg8eb">&nbsp;&nbsp;LUAC_DATA</a>
+</h3>
+<h3 class="topic">
+<a name="70la1dtfrchk7628aveg5pmj69">&nbsp;&nbsp;&nbsp;6byte</a>
+</h3>
+<h3 class="topic">
+<a name="06opvhsit3vj4qfja3s3h2kks2">&nbsp;&nbsp;&nbsp;&nbsp;0x1993 LUA1.0 发布年份
+后四个字节是 回车符0xoD,换行符(0x0A) 替换符(0x1A)和另一个换行符</a>
+</h3>
+<h3 class="topic">
+<a name="3lmufeomci6gl6p4dr7gsvorln">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/7ibee2nhd102s8o8lq3h8biqov.png"></p>
+<h3 class="topic">
+<a name="6ualh2kj4b5fn4gst0i52msu61">&nbsp;&nbsp;整数和Lua虚拟机指令宽度</a>
+</h3>
+<h3 class="topic">
+<a name="6u40e4mnof9qg92a166c9fovoi">&nbsp;&nbsp;&nbsp;cint、size_t、Lua虚拟机指令
+Lua整数和Lua浮点数 的二进制chunk里占用的
+字节数</a>
+</h3>
+<h3 class="topic">
+<a name="5u7cbokel32ci8bc3d72skd8f8">&nbsp;&nbsp;&nbsp;&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/4ihhgt2dbcqf13jfb4q6up4fqs.png"></p>
+<h3 class="topic">
+<a name="0ucejjumgsdl4bi9rb37acbdm8">&nbsp;&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/3nnk22adk47olkovqm0fcnshk7.png"></p>
+<h3 class="topic">
+<a name="79ma9nrt7dvvofpi48ic3jj0h0">&nbsp;&nbsp;源文件名</a>
+</h3>
+<h3 class="topic">
+<a name="0r56u4j9slkad58cpledietgra">&nbsp;&nbsp;&nbsp;记录二进制chunk是哪个源文件编译出来的
+长度+1 个字节 记录源文件名</a>
+</h3>
+<h3 class="topic">
+<a name="3h6vjtrpmi5kbmngil71teq0fi">&nbsp;&nbsp;&nbsp;&nbsp;只有main函数有源文件名</a>
+</h3>
+<h3 class="topic">
+<a name="5hrht517e79jk22e41oh6dcfsu">&nbsp;&nbsp;起止行号</a>
+</h3>
+<h3 class="topic">
+<a name="78t8ka88l80suahf00fa4f5nck">&nbsp;&nbsp;&nbsp;2cint 8byte 记录原型函数的起止行号</a>
+</h3>
+<h3 class="topic">
+<a name="4e9nj6f1ng809kc2rp3rs5p2fl">&nbsp;&nbsp;固定参数个数</a>
+</h3>
+<h3 class="topic">
+<a name="781m7e6b8r81ulg9rjfkvapgho">&nbsp;&nbsp;&nbsp;1byte 记录函数固定参数个数</a>
+</h3>
+<h3 class="topic">
+<a name="5dn62sl8dc30ppjnacsv01863j">&nbsp;是否是Vararg函数</a>
+</h3>
+<h3 class="topic">
+<a name="7c1vnvl8l8amtq95epmbg3b2t0">&nbsp;&nbsp;1byte 0是 1不是 主函数是 Vararg函数 </a>
+</h3>
+<h3 class="topic">
+<a name="1c316l50e47rabeds0slo0cqmu">&nbsp;寄存器数量(MaxStackSize)</a>
+</h3>
+<h3 class="topic">
+<a name="6k0t0sdbfahnhbiahb1tip8pai">&nbsp;&nbsp;1byte 寄存器数量</a>
+</h3>
+<h3 class="topic">
+<a name="6dj5ign3n3o087rbhbf758ma4j">&nbsp;&nbsp;&nbsp;编译器会计算好执行程序需要的寄存器数量</a>
+</h3>
+<h3 class="topic">
+<a name="35nialn49njh0kg5k2o7rbgmgk">&nbsp;指令表</a>
+</h3>
+<h3 class="topic">
+<a name="3mn5arl0su67i919ogcc0fk79d">&nbsp;&nbsp;4byte</a>
+</h3>
+<h3 class="topic">
+<a name="677ji2e8sg1md0c8an0tpl7p2f">&nbsp;常量表</a>
+</h3>
+<h3 class="topic">
+<a name="5hrjlense9aj7dcbdhjcv1ohjc">&nbsp;&nbsp;常量表存放Lua代码里出现的字面量，包括nil、
+布尔值、整数、浮点数和字符串五种。</a>
+</h3>
+<h3 class="topic">
+<a name="0514eccj6uqcviqifiabn78un2">&nbsp;&nbsp;&nbsp;tag标志 存储类型 </a>
+</h3>
+<h3 class="topic">
+<a name="1dgi3cvep0i3avnlet20f7t0ob">&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/4gp92fj2k3h8nfkrl29smg4gvk.png"></p>
+<h3 class="topic">
+<a name="1r1iost61qb9furcjbngoodgqb">&nbsp;Upvalue表</a>
+</h3>
+<h3 class="topic">
+<a name="5tjimcgrpn9pq2q4cedsmfcj59">&nbsp;&nbsp;2byte</a>
+</h3>
+<h3 class="topic">
+<a name="2hvk9ov5ei44h62mg4ddum16t4">&nbsp;子函数原型表</a>
+</h3>
+<h3 class="topic">
+<a name="22sljdm89m8apoo69fiucn80f5">&nbsp;行号表</a>
+</h3>
+<h3 class="topic">
+<a name="4btgust42tcukkpua1mrtbh9r2">&nbsp;&nbsp;4byte 对应指令表中的指令</a>
+</h3>
+<h3 class="topic">
+<a name="5tnietdmdu3j25veeb59bqpd72">&nbsp;局部变量表</a>
+</h3>
+<h3 class="topic">
+<a name="15tj8l1fng0a16ku4954a4cefr">&nbsp;&nbsp;存储局部变量名和起止指令索引</a>
+</h3>
+<h3 class="topic">
+<a name="1dstrr0p72aiqvalbu7btoj00p">&nbsp;Upvaue名列表</a>
+</h3>
+<h3 class="topic">
+<a name="02hg2f29boq0krlc2k8km26644">&nbsp;&nbsp;和Upvalue表中的云素一一对应,分别记录Upvalue在源代码中的名字</a>
+</h3>
+<h2 class="topic">
+<a name="3nbiapv9d1pdtht1cup593lkts">数据类型</a>
+</h2>
+<h3 class="topic">
+<a name="18da4b48pt7h5vvbuu30bvmpod">&nbsp;数字类型</a>
+</h3>
+<h3 class="topic">
+<a name="72c1i8q4as1alr06ct6rcnompe">&nbsp;&nbsp;字节</a>
+</h3>
+<h3 class="topic">
+<a name="22ad6a9pdsd6h423b4eqeg5tsi">&nbsp;&nbsp;&nbsp;8bit(0xff)</a>
+</h3>
+<h3 class="topic">
+<a name="4r5n8reccee1q06g55j11scf71">&nbsp;&nbsp;C语言整型(cint)</a>
+</h3>
+<h3 class="topic">
+<a name="0tuem45seetoj4kjb9bbts50ep">&nbsp;&nbsp;&nbsp;4个字节 0xffffffff</a>
+</h3>
+<h3 class="topic">
+<a name="1i5497q8v0tbun9akkg3rj5dc1">&nbsp;&nbsp;C语言size_t</a>
+</h3>
+<h3 class="topic">
+<a name="1b2nuft78rbmt2kltpv9hb9dej">&nbsp;&nbsp;&nbsp;8个字节0xffffffffffffffff</a>
+</h3>
+<h3 class="topic">
+<a name="0rm29246k41ndebj8ste84j7tf">&nbsp;&nbsp;Lua整数(LUAC_INT)</a>
+</h3>
+<h3 class="topic">
+<a name="03elvon5f22ekr9u0d2prahv0p">&nbsp;&nbsp;&nbsp;8个字节</a>
+</h3>
+<h3 class="topic">
+<a name="1fdkvcdmn4lc63mbgvb9doqu9t">&nbsp;&nbsp;Lua浮点数</a>
+</h3>
+<h3 class="topic">
+<a name="6v3p4oqm8h2j0fsukkh77g8msn">&nbsp;&nbsp;&nbsp;8个字节</a>
+</h3>
+<h3 class="topic">
+<a name="188anouf548u8dvekmvfee1ndg">&nbsp;&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/0sc25lvf59q2buahm0sltsrqmc.png"></p>
+<h3 class="topic">
+<a name="18o3vq9c79u30jset0fh4rh4lk">&nbsp;字节数组(字符串)</a>
+</h3>
+<h3 class="topic">
+<a name="5t8t5acpjo6nsof68tn1t7vffk">&nbsp;&nbsp;chunk中表示(length + content)</a>
+</h3>
+<h3 class="topic">
+<a name="1j6125rdg0e9p4jirjks6hp827">&nbsp;&nbsp;NULL字符串0x00</a>
+</h3>
+<h3 class="topic">
+<a name="79mq68gkorbrnsci0mgh0rmbms">&nbsp;&nbsp;长度小于253 (0xFD) 一个字节记录长度+1</a>
+</h3>
+<h3 class="topic">
+<a name="5g5fmagp27s2efcpr16d3nm4lo">&nbsp;&nbsp;对长度达于254(0xFE)的字符串 sizt_t + 1字节数组</a>
+</h3>
+<h3 class="topic">
+<a name="3905nookqomsmsp5uqu0sbvsc4">&nbsp;&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/7coi7atorctjlrr2p27p44slf3.png"></p>
+<h3 class="topic">
+<a name="1b3qsjj263gjno46v0goub4orr">&nbsp;列表</a>
+</h3>
+<h3 class="topic">
+<a name="4n7vhihsnvhd41nmoinocoiju9">&nbsp;&nbsp;cint类型记录列表长度,然后存储n个列表元素</a>
+</h3>
+<h3 class="topic">
+<a name="61cvddjqll0hdhfbt8ecertr2n">&nbsp;&nbsp;&nbsp;指令表、常量表、子函数原型信息表</a>
+</h3>
+<h2 class="topic">
+<a name="4ebvrvejd640gk6d52fk6tdfb5">指令集</a>
+</h2>
+<h3 class="topic">
+<a name="4onq67sucqd6rg2oh197htheer">&nbsp;堆指令集(基于栈的结构)</a>
+</h3>
+<h3 class="topic">
+<a name="1bo03ldb6oecl3esakucdtiomp">&nbsp;&nbsp;java\c#、python指令集较大、指令平均长度较短</a>
+</h3>
+<h3 class="topic">
+<a name="1hc0tvfuf9a9v8gol1pdl48bho">&nbsp;栈指令集(直接读写寄存器)</a>
+</h3>
+<h3 class="topic">
+<a name="5afakp7t7br0s2f5belme98l9b">&nbsp;&nbsp;Lua 指令集较小，平均长度较长</a>
+</h3>
+<h3 class="topic">
+<a name="61ucqstmp3f7fmu1d28nk6lkqf">&nbsp;Lua指令集订长  4个字节
+6个比特操作码(Opcode)26比特操作数(Operand)
+一共47条指令</a>
+</h3>
+<h3 class="topic">
+<a name="0v1n5r8g6ioep9hdoto1lt94oi">&nbsp;四类指令对应四种编码模式</a>
+</h3>
+<h3 class="topic">
+<a name="6v7nevcuf28aslm8s28kg48gei">&nbsp;&nbsp;iABC</a>
+</h3>
+<h3 class="topic">
+<a name="1m0ircmplfbo1i4clfudeso4k1">&nbsp;&nbsp;&nbsp;A B C 操作数 分别占用 8 9 9比特</a>
+</h3>
+<h3 class="topic">
+<a name="380ohlfv3ksai4b72kdi5accjb">&nbsp;&nbsp;iABx</a>
+</h3>
+<h3 class="topic">
+<a name="74q20roaf0d3tcpbmpmo5vh2js">&nbsp;&nbsp;&nbsp;A 和 Bx两个操作数 8个 和18个比特</a>
+</h3>
+<h3 class="topic">
+<a name="6jctloqs7p73d6c47v76prqmdu">&nbsp;&nbsp;iAsBx</a>
+</h3>
+<h3 class="topic">
+<a name="64495vu9ns61qf4esg73eeohqs">&nbsp;&nbsp;&nbsp;A和sBx(有符号整数) 两个操作数 8 和 18个比特</a>
+</h3>
+<h3 class="topic">
+<a name="1l6dst9jflg0jit88302rbsr06">&nbsp;&nbsp;iAx</a>
+</h3>
+<h3 class="topic">
+<a name="1a9n4skjeb9ckgni4kd45aju6h">&nbsp;&nbsp;&nbsp;携带一个操作数 占用26个比特</a>
+</h3>
+<h3 class="topic">
+<a name="4efjhcvdsecsbsop0ne0b2pain">&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/6a6hpv6uqrkeqetbj19u9ei61t.png"></p>
+<h3 class="topic">
+<a name="595du73e69gb860n55vk2mmo55">&nbsp;操作码用于识别指令 6个比特 最多64条 LUa 5.3定义了47条指令</a>
+</h3>
+<h3 class="topic">
+<a name="7b42qt9ak6pg96976ujnsff6s1">&nbsp;操作数</a>
+</h3>
+<h2 class="topic">
+<a name="5l5ei45hif1jvq4pu2kpsblvou">Lua栈</a>
+</h2>
+<h3 class="topic">
+<a name="11clfpl1ulctskdrnag2p7hofu">&nbsp;</a>
+</h3>
+<p class="topicImage">
+<img src="Lua%E8%AF%AD%E8%A8%80%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82_files/0ctq64kr0l09q2c0gfbf74rn2f.png"></p>
+<h3 class="topic">
+<a name="41t3ko5n33mlcutvnm4o2lki7r">&nbsp;lua State 栈实现了 pop set get操作</a>
+</h3>
+<h2 class="topic">
+<a name="059atmjto8h00kvjg7a6h8vq2m">LUA虚拟机</a>
+</h2>
+</body>
+</html>
