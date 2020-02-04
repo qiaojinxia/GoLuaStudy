@@ -14,8 +14,8 @@ const(
 	LUA_TFUNCTION
 	LUA_TUSERDATA
 	LUA_TTHREAD
+	DEBUG = -1//调试输出
 )
-
 /* arithmetic functions */
 const (
 	LUA_OPADD  = iota // +

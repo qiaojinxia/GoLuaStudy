@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/LuaProject/api"
 	"github.com/LuaProject/binchunk"
 	. "github.com/LuaProject/vm"
 )
@@ -43,6 +44,12 @@ func printHeader (f *binchunk.Prototype) {
 	fmt.Printf("%d locals, %d comstants ,%d functions\n",
 		len(f.LocVars),len(f.Constants),len(f.Protos))
 
+}
+func getMetatabel(ls api.LuaState) int{
+	if !ls.get(1){
+		ls.PushNil()
+	}
+	return 1
 }
 func printCode (f *binchunk.Prototype){
 	for pc,c := range f.Code {

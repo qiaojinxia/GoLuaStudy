@@ -6,10 +6,15 @@ type luaStack struct{
 	slots []luaValue//栈存储数组
 	top int//栈顶索引
 	prev *luaStack
+	//存放chunk数据
 	closure *closure
 	varargs []luaValue
+	//指向执行到第几条指令
 	pc int
+	//指向luastate
 	state *luaState
+
+	openuvs map[int]*upvalue
 }
 func newLuaStack(size int,state *luaState) *luaStack{
 	return &luaStack{
@@ -52,7 +57,7 @@ func (self *luaStack) pop() luaValue{
 }
 //absIndex() 方法把索引转换成绝对索引
 func (self *luaStack) absIndex(idx int) int{
-	if idx <= api.LUA_REGISTRYINDEX{
+	if idx >=0 || idx <= api.LUA_REGISTRYINDEX{
 		return idx
 	}
 	//大于零 直接返回
@@ -64,14 +69,30 @@ func (self *luaStack) absIndex(idx int) int{
 }
 //isValid()验证索引是否有效
 func (self *luaStack) isValid(idx int) bool{
+	if idx < api.LUA_REGISTRYINDEX{
+		uvIdx := api.LUA_REGISTRYINDEX - idx -1
+		c := self.closure
+		return c!= nil && uvIdx < len(c.upvals)
+	}
 	if idx == api.LUA_REGISTRYINDEX {
 		return true
 	}
 	absIdex :=  self.absIndex(idx)
 	return absIdex > 0 && absIdex <= self.top
 }
-//按索引获取值
+//按索引获取值 不会改变栈内容
 func (self *luaStack) get(idx int) luaValue {
+	if idx < api.LUA_REGISTRYINDEX {
+		uvIdx := api.LUA_REGISTRYINDEX -idx -1
+		c := self.closure
+		if c == nil || uvIdx >= len(c.upvals){
+			return nil
+		}
+		return *(c.upvals[uvIdx].val)
+	}
+	if idx == api.LUA_REGISTRYINDEX{
+		return self.state.registry
+	}
 	//对索引进行 绝对值如果为负
 	absIndex := self.absIndex(idx)
 	//如果索引没有超出范围
@@ -84,9 +105,21 @@ func (self *luaStack) get(idx int) luaValue {
 }
 //set()方法 根据索引往栈里写入值 如果索引无效 抛出异常 终止程序
 func (self *luaStack) set(idx int,val luaValue){
-	if idx == api.LUA_REGISTRYINDEX {
-		self.state.registry = val.(*luaTable)
+	if idx < api.LUA_REGISTRYINDEX{
+		uvIdx := api.LUA_REGISTRYINDEX -idx -1
+		c := self.closure
+		if c != nil && uvIdx < len(c.upvals){
+			*(c.upvals[uvIdx].val) =val
+		}
 		return
+	}
+	if idx == api.LUA_REGISTRYINDEX {
+		if v,ok:=val.(*luaTable);ok{
+			self.state.registry = v
+			return
+		}else{
+			panic("set not register table")
+		}
 	}
 	absIdx := self.absIndex(idx)
 	if absIdx > 0 && absIdx <= self.top{
@@ -105,6 +138,7 @@ func (self *luaStack) popN(n int) []luaValue{
 }
 //推入 n 个 值 如果 vals 长度 如果n的长度比 vals长那么剩余的就push nil
 func (self *luaStack) pushN(vals []luaValue,n int){
+	//假设 实际返回 func a(){ return 1 2 3} 但是 b,c,d,e=a() 那么e 是nil 所谓的多退少补
 	nVals := len(vals)
 	if n < 0 { n = nVals}
 	for i := 0; i < n; i++ {

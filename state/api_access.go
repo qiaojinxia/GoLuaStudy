@@ -51,6 +51,14 @@ func (self *luaState) IsInteger(idx int) bool {
 	_,ok := val.(int64)
 	return ok
 }
+
+func (self *luaState) IsTable(idx int) bool {
+	t := self.Type(idx)
+	return t == LUA_TTABLE
+
+}
+
+
 //从指定索引获取 一个值转换成布尔值 转换成布尔类型
 func (self *luaState) ToBoolean(idx int)bool{
 	val := self.stack.get(idx)
@@ -76,6 +84,13 @@ func (self *luaState) ToIntegerX(idx int) (int64,bool){
 	val:= self.stack.get(idx)
 	return convertToInteger(val)
 }
+func (self *luaState) ToTable(idx int) (*luaTable,bool) {
+	val:= self.stack.get(idx)
+	if t,ok := val.(*luaTable);ok{
+		return t,ok
+	}
+	return nil,false
+}
 //从指定索引处取出一个值 如果是字符串直接返回 如果是数字转换成字符串
 func (self *luaState) ToStringX(idx int) (string,bool) {
 	val:= self.stack.get(idx)
@@ -85,6 +100,10 @@ func (self *luaState) ToStringX(idx int) (string,bool) {
 		s := fmt.Sprintf("%v", x)
 		self.stack.set(idx, s)
 		return s,true
+	case *luaTable:
+		v,_ := val.(*luaTable)
+		ss := v.printTbale()
+		return ss,true
 	default:
 		return "",false
 	}

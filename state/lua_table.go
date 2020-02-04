@@ -1,18 +1,20 @@
 package state
 
 import (
+	"fmt"
 	"github.com/LuaProject/number"
 	"math"
 )
 
 type luaTable struct {
+	metatable *luaTable //原表
 	//存放数组内容
 	arr []luaValue
 	//存放hash表
 	_map map[luaValue]luaValue
 }
 //创建一个表 如果 nArr大于0 初始化数组大小 如果nRec大于0  初始化map 可以存放lua变量
-func newLuaTable(nArr,nRec int) *luaTable{
+func newLuaTable(nArr,nRec int) *luaTable {
 	t := &luaTable{}
 	if nArr > 0{
 		t.arr = make([]luaValue, 0, nArr)
@@ -21,6 +23,14 @@ func newLuaTable(nArr,nRec int) *luaTable{
 		t._map = make(map[luaValue]luaValue, nRec)
 	}
 	return t
+}
+
+func (self *luaTable) printTbale() string{
+	if len(self.arr) !=0 {
+		return fmt.Sprintf("%v",self.arr)
+	}else{
+		return fmt.Sprintf("%v",self._map)
+	}
 }
 
 func (self *luaTable) get(key luaValue) luaValue{
@@ -100,11 +110,15 @@ func (self *luaTable) _shrinkArray() {
 		}
 	}
 }
-
+//a=[1,3,4] 如果此时插入 索引为 a[5]='x' 此时由于只有3个元素 插入不进数组
+//所以按照插入逻辑会保存在 map中 如果后面数组有了足够的长度足够插入这个元素了 那么就把map里的取出插入list
 func (self *luaTable) _expandArray() {
 	for idx := int64(len(self.arr)) + 1; true; idx++ {
+		//若果在map里面找到了 索引为 arr长度
 		if val, found := self._map[idx]; found {
+			//删除map里的值
 			delete(self._map, idx)
+			//把map里的值放到数据里
 			self.arr = append(self.arr, val)
 		} else {
 			break
@@ -114,4 +128,8 @@ func (self *luaTable) _expandArray() {
 
 func (self *luaTable) len() int{
 	return len(self.arr)
+}
+func (self *luaTable) hasMetafield(fieldName string) bool{
+	return self.metatable != nil &&
+		self.metatable.get(fieldName)!=nil
 }

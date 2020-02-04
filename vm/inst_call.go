@@ -60,7 +60,7 @@ func call(i Instruction, vm LuaVM) {
 	// println(":::"+ vm.StackToString())
 	//将参数取出推到栈顶
 	nArgs := _pushFuncAndArgs(a, b, vm)
-	//
+	//调用call 生成子调用栈
 	vm.Call(nArgs, c -1)
 	_popResults(a, c, vm)
 }

@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	//下面是对2个栈元素常用的计算
 	iadd = func(a,b int64) int64 {return a + b}
 	fadd = func(a,b float64) float64{return a + b}
 	isub = func(a,b int64) int64 {return a -b}
@@ -29,7 +30,7 @@ var (
 	bnot = func(a,_ int64)  int64 {return ^a}
 )
 type operator struct{
-	metamethod  string
+	metamethod  string//原方法名
 	integerFunc func(int64,int64) int64
 	floatFunc func(float64,float64) float64
 }
@@ -63,10 +64,17 @@ func (self *luaState) Arith(op api.ArithOp){
 	operator := operators[op]
 	if result := _arith(a,b,operator);result != nil{
 		self.stack.push(result)
-	}else{
-		panic("arithmetic error!")
+		return
 	}
+	mm := operator.metamethod
+	if result,ok := callMetamethod(a, b, mm, self); ok {
+		self.stack.push(result)
+		return
+	}
+		panic("arithmetic error!")
+
 }
+
 func _arith(a,b luaValue,op operator) luaValue{
 	if op.floatFunc == nil{
 		if x,ok := convertToInteger(a);ok{

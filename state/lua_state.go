@@ -4,12 +4,38 @@ import . "github.com/LuaProject/api"
 
 type luaState struct {
 	registry *luaTable //注册表
-	stack *luaStack
+	stack *luaStack    //lua栈
+}
+
+func (self *luaState) RawLen(idx int) uint {
+	panic("implement me")
+}
+
+func (self *luaState) RawEqual(idxl, idx2 int) bool {
+	panic("implement me")
+}
+
+func (self *luaState) RawGet(idx int) LuaType {
+	panic("implement me")
+}
+
+func (self *luaState) RawSet(idx int) {
+	panic("implement me")
+}
+
+func (self *luaState) RawGetI(idx int, i int64) LuaType {
+	panic("implement me")
+}
+
+func (self *luaState) RawSetI(idx int, i int64) {
+	panic("implement me")
 }
 
 //初始化栈
 func New() *luaState {
+	//初始化lua注册表
 	registry := newLuaTable(0,0)
+
 	registry.put(LUA_RIDX_GLOBALS, newLuaTable( 0,0))
 	ls := &luaState{registry:registry}
 	ls.pushLuaStack(newLuaStack(LUA_MINSTACK,ls))
@@ -38,7 +64,7 @@ func (self *luaState) Copy(fromIdx ,toIdx int) {
 func (self *luaState) PushValue(idx int){
 	val := self.stack.get(idx)
 	self.stack.push(val)
-}
+ }
 //弹出栈顶值 后 再插入 覆盖到栈制定位置
 func (self *luaState) Replace(idx int){
 	val := self.stack.pop()
@@ -81,6 +107,8 @@ func (self *luaStack) reverse(from,to int){
 		to --
 	}
 }
+
+
 //如果栈顶 top 大于 setTop(n) name 就相当于弹出 n - top 指定0 时清空栈
 //如果 top < n 相当于 压入 n - top 个nill 入栈
 func (self *luaState) SetTop(idx int){

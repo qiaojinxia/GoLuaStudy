@@ -74,9 +74,15 @@ func setList(i Instruction,vm LuaVM){
 	}
 
 	vm.CheckStack(1)
+	//c * 50 由于c只有9个bit 只能表示512长度 但list长度肯定不能够表示
+	//所以 通过 (c-1)* 一个偏移长度 + (1~b)来表示长度
+	//假设 设为 50 那么 512 * 50 可以表示 25500的长度
 	idx := int64(c * LFIELDS_PER_FLUSH)
+	//b的长度 由于栈是从1开始索引的 所以j从1开始
 	for j := 1; j <= b; j++ {
+		//从 偏移 + 1开始
 		idx++
+		//索引 a
 		vm.PushValue(a + j)
 		vm.SetI(a, idx)
 	}
@@ -84,6 +90,7 @@ func setList(i Instruction,vm LuaVM){
 		for j := vm.RegisterCount() + 1; j <= vm.GetTop(); j++ {
 			idx++
 			vm.PushValue(j)
+			//表的索引a 值在栈中的索引idx 把值写入lua表
 			vm.SetI(a, idx)
 		}
 

@@ -1,21 +1,30 @@
 package state
 
-import ."github.com/LuaProject/api"
+import (
+	. "github.com/LuaProject/api"
+)
 
 func (self *luaState) Compare(idx1,idx2 int,op CompareOp) bool{
 	a := self.stack.get(idx1)
 	b := self.stack.get(idx2)
 	switch op {
-	case LUA_OPEQ:return _eq(a,b)
-	case LUA_OPLT: return _lt(a,b)
-	case LUA_OPLE: return _le(a, b)
+	case LUA_OPEQ:return _eq(a,b,self)
+	case LUA_OPLT: return _lt(a,b,self)
+	case LUA_OPLE: return _le(a, b,self)
 	default: panic("invalid compare op!")
 	}
 }
 
-func _eq(a,b luaValue) bool{
+func _eq(a,b luaValue,ls *luaState) bool{
 	switch x:= a.(type){
 	case nil: return b==nil
+	case *luaTable:
+		if y,ok := b.(*luaTable);ok && x!= y&& ls!= nil{
+			if result,ok := callMetamethod(x,y,"__eq",ls);ok{
+				return convertToBoolean(result)
+			}
+		}
+	return a == b
 	case bool: y,ok := b.(bool)
 	return ok&&x == y
 	case string:
@@ -31,7 +40,7 @@ func _eq(a,b luaValue) bool{
 		return a== b
 	}
 }
-func _lt(a,b luaValue) bool{
+func _lt(a,b luaValue,ls *luaState) bool{
 	switch x := a.(type){
 	case string:
 		if y,ok := b.(string); ok{
@@ -48,11 +57,16 @@ func _lt(a,b luaValue) bool{
 		case int64:return x<float64(y)
 		}
 	}
-	panic("comparsion error!")
+	if result,ok := callMetamethod(a,b,"__lt",ls);ok{
+		return convertToBoolean(result)
+
+	}else {
+		panic("comparsion error!")
+	}
 	
 }
 
-func _le(a, b luaValue) bool {
+func _le(a, b luaValue,ls *luaState) bool {
 	switch x := a.(type) {
 	case string:
 		if y, ok := b.(string); ok {
@@ -72,6 +86,12 @@ func _le(a, b luaValue) bool {
 		case int64:
 			return x <= float64(y)
 		}
+	}
+	//这下面的判断  a<=b 和  !a>b相等 所以 当 <= 找不到这个元方法时 可以找等价 > 取反
+	if result,ok := callMetamethod(a,b,"__le",ls);ok {
+		return convertToBoolean(result)
+	}else if result,ok := callMetamethod(a,b,"__lt",ls);ok{
+		return !convertToBoolean(result)
 	}
 	panic("comparison error!")
 }
