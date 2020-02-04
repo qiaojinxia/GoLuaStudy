@@ -1,0 +1,1 @@
+function f() local a,b,k,v,e; u[k] = v; u[lOO] ="foo" end
